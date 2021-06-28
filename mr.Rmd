@@ -1,0 +1,37 @@
+---
+title: "mr"
+output: html_document
+---
+
+```{r setup, message=FALSE, echo=FALSE}
+library(glue)
+library(tidyr)
+source('ind_mr_fun.R') # define MR function
+source('plot_scatter.R') # define plotting function
+source('get_input.R') # get input for MR (dataframe of E-O pairs)
+
+# exp_ids <- c('prot-b-83', 'prot-b-11')
+# out_ids <- c('ukb-a-577', 'ukb-a-92')
+             
+
+mrres <-
+  perform_mr(
+    indf = indf
+  )
+
+# get valid exposure-outcome pairs
+pairs <- mrres$res %>% select(id.exposure, id.outcome) %>% distinct()
+
+# iterate over them
+for (i in 1:nrow(pairs)) {
+    exp_id <- pairs[i, 'id.exposure']
+    out_id <- pairs[i, 'id.outcome']
+    filt_res <- mrres$res %>% filter(id.exposure == exp_id, id.outcome == out_id)
+    message(glue("{filt_res[1, 'exposure']} VS {filt_res[1, 'outcome']}"))
+    print(glue("{filt_res[1, 'exposure']} VS {filt_res[1, 'outcome']}"))
+    print(knitr::kable(mrres$dat %>% filter(id.exposure == exp_id, id.outcome == out_id) %>% select(Gene, Chromosome, Gene.start..bp., Gene.end..bp., Strand, Band, Function) %>% distinct()))
+    print("MR results: \n")
+    print(knitr::kable(mrres$res %>% filter(id.exposure == exp_id, id.outcome == out_id) %>% select(id.exposure, id.outcome, method, nsnp, b, pval)))
+    plot(mrres$p[[glue("{exp_id}.{out_id}")]])
+  }
+```
