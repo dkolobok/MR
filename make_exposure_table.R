@@ -1,6 +1,8 @@
+library(logger)
 library(dplyr)
 
-data_folder <- '/home/dkolobok/code/MR/data'
+source('config.R')
+
 # read available outcomes table from cache or from the web
 ao_fn <- paste(data_folder, 'mr_available_outcomes.csv', sep='/')
 if (file.exists(ao_fn)) ao <- read.csv(ao_fn) else {
