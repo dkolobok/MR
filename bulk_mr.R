@@ -1,4 +1,10 @@
+library(dplyr)
 library(purrrlyr)
+library(logger)
+library(glue)
+library(ggplot2)
+source('ind_mr.R')
+source('plot_scatter.R')
 
 # drops suffix from all columns names
 drop_suffix <- function(df, suffix='.exposure') {
@@ -9,12 +15,16 @@ drop_suffix <- function(df, suffix='.exposure') {
          )
 }
 
-bulk_mr <- function(indf, pval=1e-5, delta=100000) {
-  exp_df <- indf %>% 
-    dplyr::select(id.exposure, chr, start, end) %>% 
-    distinct() #%>% head(2)
+# performs bulk cis-MR for every exposure from exp_df against every outcome in out_ids
+bulk_mr <- function(exp_df, out_ids, pval=1e-5, delta=100000) {
   log_info(glue("Getting variants for {nrow(exp_df)} exposures"))
-  exp_dat_mr <- exp_df %>% by_row(function(x) ind_mr(x, delta=delta, pval_threshold=pval), .collate='rows', .labels = FALSE)
+  exp_dat_mr <- exp_df %>% by_row(function(x) get_instruments_ind(x, delta=delta, pval_threshold=pval), .collate='rows', .labels = FALSE)
+  
+  if (nrow(exp_dat_mr) == 0) {
+    log_info("No variants for this exposure, exiting...")
+    return(list())
+  }
+  
   exp_dat_mr <- exp_dat_mr %>% mutate(mr_keep = TRUE) %>% 
     dplyr::rename(SNP = rsid, id.exposure = id, 
            exposure = trait, beta.exposure = beta, 
@@ -23,19 +33,9 @@ bulk_mr <- function(indf, pval=1e-5, delta=100000) {
            other_allele.exposure = nea,
            eaf.exposure = eaf)
   
-  out_ids <- unique(indf$id.outcome)
   out_dat <-
     extract_outcome_data(snps = exp_dat_mr$SNP, outcomes = out_ids)
   dat <- harmonise_data(exp_dat_mr, out_dat)
-
-  # # leave only pairs present in indf
-  # dat <- dat %>% inner_join(indf,
-  #                           by = c('id.exposure', 'id.outcome'))
-  # 
-  # dat <- dat %>% mutate(label = paste(chr, pos, sep = ":"))
-  # 
-  # # cis-MR: leave only SNPs with gene boundaries +- delta
-  # dat <- dat %>% filter((chr == Chromosome) & (Gene.start..bp. - delta <= pos) & (Gene.end..bp. + delta >= pos))
 
   res <- mr(dat)
   het <- mr_heterogeneity(dat)

@@ -35,7 +35,8 @@ get_ind_gwas <- function(exp_id, pval, delta, data_path = 'data/exp_vcf',
   log_info('Download completed.')
 }
 
-ind_mr <- function(row, pval_threshold, delta) {
+# get instruments for individual exposure
+get_instruments_ind <- function(row, pval_threshold, delta) {
   exp_id <- row$id.exposure
   chr <- row$chr
   start <- row$start

@@ -1,9 +1,13 @@
-# ao <- available_outcomes()
-# write.csv(ao, file='/home/dkolobok/code/MR/data/mr_available_outcomes.csv')
-data_folder <- '/home/dkolobok/code/MR/data'
+library(dplyr)
 
-ao <- read.csv(paste(data_folder, 'mr_available_outcomes.csv', sep='/'))
-outcome_df <- ao %>% dplyr::filter(stringr::str_detect(trait, 'pneumon|covid|septicemia|sepsis'))
+data_folder <- '/home/dkolobok/code/MR/data'
+# read available outcomes table from cache or from the web
+ao_fn <- paste(data_folder, 'mr_available_outcomes.csv', sep='/')
+if (file.exists(ao_fn)) ao <- read.csv(ao_fn) else {
+  log_info('Caching available outcomes...')
+  ao <- available_outcomes()
+  write.csv(ao, ao_fn, row.names = FALSE)
+}
 
 # the original string database table can be processed by 
 # sed 's/;.*//; s/9606.//' 9606.protein.info.v11.0.txt > stringdb.txt
@@ -27,8 +31,10 @@ protein_gene_coordinates <- read.csv(paste(data_folder, 'protein_gene_coordinate
 exposure_df <- exposure_df %>% inner_join(protein_gene_coordinates, by='protein_external_id') %>% 
   dplyr::select(id, preferred_name, chr, start, end)
 
+exposure_df <- exposure_df %>% rename(id.exposure = id)
+write.csv(exposure_df, paste(data_folder, 'selected_exposures.csv', sep='/'), row.names = FALSE)
 
 # 25: 161
-indf <- exposure_df %>% mutate(id.outcome = 'ieu-b-69') %>% 
-  dplyr::rename(id.exposure = id)
+# indf <- exposure_df %>% mutate(id.outcome = 'ieu-b-69') %>% 
+#   dplyr::rename(id.exposure = id)
 
